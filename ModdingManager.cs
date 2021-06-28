@@ -2,7 +2,6 @@
 using ComputerUtils.ConsoleUi;
 using ComputerUtils.FileManaging;
 using ComputerUtils.Logging;
-using Iteedee.ApkReader;
 using QuestPatcher.Axml;
 using System;
 using System.Collections.Generic;
@@ -30,7 +29,7 @@ namespace LegacyQuestBSModdingTool
         {
             Logger.Log("Starting modding of APK");
             Logger.Log("Checking if required Tools Exist");
-            DownloadFileIfMissing(apkToolPath, "https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.5.0.jar");
+            //DownloadFileIfMissing(apkToolPath, "https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.5.0.jar");
             DownloadFileIfMissing(apkSignerPath, "https://github.com/patrickfav/uber-apk-signer/releases/download/v1.2.1/uber-apk-signer-1.2.1.jar");
 
             DownloadFileIfMissing(libMain32Path, "https://github.com/sc2ad/QuestLoader/releases/download/v1.1.1/libmain32.so");
