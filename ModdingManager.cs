@@ -39,24 +39,31 @@ namespace LegacyQuestBSModdingTool
             Console.ForegroundColor = ConsoleColor.White;
             UndefinedEndProgressBar undefinedEndProgressBar = new UndefinedEndProgressBar();
             string apkPath = PublicVars.exe + "tmpBSApk.apk";
-
-            apkPath = ConsoleUiController.QuestionString("BS APK Path: ").Replace("\"", "");
-            undefinedEndProgressBar.Start();
-            undefinedEndProgressBar.SetupSpinningWheel(500);
+            
             FileManager.RecreateDirectoryIfExisting(PublicVars.exe + "tmp");
-            undefinedEndProgressBar.UpdateProgress("Pulling APK");
-            /*
-            interactor.adb("pull " + interactor.adbS("shell pm path com.beatgames.beatsaber").Replace("package:", "") + " \"" + apkPath + "\"");
-            if(!File.Exists(apkPath))
+            
+            if (PublicVars.config.manualADB)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                undefinedEndProgressBar.StopSpinningWheel();
-                Logger.Log("APK was unable to get pulled. See above for more info.", LoggingType.Warning);
-                Console.WriteLine("APK was unable to get pulled. Aborting.");
-                return;
+                string tmpApkPath = ConsoleUiController.QuestionString("\nBS APK Path: ").Replace("\"", "");
+                undefinedEndProgressBar.Start();
+                undefinedEndProgressBar.SetupSpinningWheel(500);
+                undefinedEndProgressBar.UpdateProgress("Copying APK");
+                File.Copy(tmpApkPath, apkPath);
+            } else
+            {
+                undefinedEndProgressBar.Start();
+                undefinedEndProgressBar.SetupSpinningWheel(500);
+                undefinedEndProgressBar.UpdateProgress("Pulling APK");
+                interactor.adb("pull " + interactor.adbS("shell pm path com.beatgames.beatsaber").Replace("package:", "") + " \"" + apkPath + "\"");
+                if(!File.Exists(apkPath))
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    undefinedEndProgressBar.StopSpinningWheel();
+                    Logger.Log("APK was unable to get pulled. See above for more info.", LoggingType.Warning);
+                    Console.WriteLine("APK was unable to get pulled. Aborting.");
+                    return;
+                }
             }
-            */
-
 
             Logger.Log("Checking if apk is modded");
             undefinedEndProgressBar.UpdateProgress("Checking if APK is modded", true);
@@ -70,23 +77,11 @@ namespace LegacyQuestBSModdingTool
                 return;
             }
             undefinedEndProgressBar.UpdateProgress("Getting APK Version", true);
-            MemoryStream manifestStream = new MemoryStream();
-            apkArchive.GetEntry("AndroidManifest.xml").Open().CopyTo(manifestStream);
-            manifestStream.Position = 0;
-            AxmlElement manifest = AxmlLoader.LoadDocument(manifestStream);
-            string versionName = "";
-            foreach(AxmlAttribute a in manifest.Attributes)
-            {
-                if(a.Name == "versionName")
-                {
-                    Console.WriteLine("\nAPK Version is " + a.Value);
-                    Logger.Log("Apk version is " + a.Value);
-                    versionName = a.Value.ToString();
-                }
-            }
+            
             bool isApk64Bit = apkArchive.GetEntry("lib/arm64-v8a/libil2cpp.so") != null;
             undefinedEndProgressBar.UpdateProgress("Adding unstripped libunity to APK if available");
             string libpath = isApk64Bit ? "lib/arm64-v8a/" : "lib/armeabi-v7a/";
+            string versionName = GetAPKVersionString(apkArchive);
             if (AttemptDownloadUnstrippedUnity(versionName))
             {
                 Logger.Log("Adding libunity.so to " + (apkArchive.GetEntry("lib/arm64-v8a/libil2cpp.so") != null ? "lib/arm64-v8a/libunity.so" : "lib/armeabi-v7a/libunity.so"));
@@ -108,9 +103,44 @@ namespace LegacyQuestBSModdingTool
             undefinedEndProgressBar.UpdateProgress("Saving", true);
             apkArchive.Dispose();
 
-            undefinedEndProgressBar.StopSpinningWheel();
 
-            Console.WriteLine("Modding should be finished now. Please install the apk manually as I want to game now so I didn't add automatic install. It's named tmpBSApk.apk");
+            if (PublicVars.config.manualADB)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Modding should be finished now. Please install the apk manually. It's named tmpBSApk.apk");
+            } else
+            {
+                undefinedEndProgressBar.UpdateProgress("Installing modded APK");
+                if(!interactor.adb("install -r \"" + apkPath + "\""))
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Installing of modded apk failed. Please install the APK manually.");
+                } else
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("Modding finished!");
+                }
+            }
+            undefinedEndProgressBar.StopSpinningWheel();
+        }
+
+        public static string GetAPKVersionString(ZipArchive apkArchive)
+        {
+            MemoryStream manifestStream = new MemoryStream();
+            apkArchive.GetEntry("AndroidManifest.xml").Open().CopyTo(manifestStream);
+            manifestStream.Position = 0;
+            AxmlElement manifest = AxmlLoader.LoadDocument(manifestStream);
+            string versionName = "";
+            foreach (AxmlAttribute a in manifest.Attributes)
+            {
+                if (a.Name == "versionName")
+                {
+                    //Console.WriteLine("\nAPK Version is " + a.Value);
+                    Logger.Log("Apk version is " + a.Value);
+                    versionName = a.Value.ToString();
+                }
+            }
+            return versionName;
         }
 
         // Uses https://github.com/Lauriethefish/QuestUnstrippedUnity to download an appropriate unstripped libunity.so for beat saber if there is one

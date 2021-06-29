@@ -56,6 +56,8 @@ namespace LegacyQuestBSModdingTool
     public class ModdingMenu
     {
         public ModdingManager moddingManager = new ModdingManager();
+        public DevelopingStuff developingStuff = new DevelopingStuff();
+
         public void Start()
         {
             SetupProgram();
@@ -63,7 +65,7 @@ namespace LegacyQuestBSModdingTool
             {
                 Console.WriteLine();
                 Console.WriteLine();
-                switch (ConsoleUiController.ShowMenu(new string[] { "Mod APK", "Install Songs", "Install Mods", "Exit" }))
+                switch (ConsoleUiController.ShowMenu(new string[] { "Mod APK", "Install Songs", "Install Mods", "Exit", "Development stuff" }))
                 {
                     case "1":
                         moddingManager.StartModding();
@@ -77,6 +79,9 @@ namespace LegacyQuestBSModdingTool
                     case "4":
                         Logger.Log("Exiting");
                         System.Environment.Exit(0);
+                        break;
+                    case "5":
+                        developingStuff.ShowMenu();
                         break;
                 }
             }
@@ -103,5 +108,6 @@ namespace LegacyQuestBSModdingTool
     public class PublicVars
     {
         public static string exe = AppDomain.CurrentDomain.BaseDirectory;
+        public static Config config = Config.LoadConfig();
     }
 }
